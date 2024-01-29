@@ -28,7 +28,7 @@ std::pair< std::vector<int>, std::vector< std::vector<int> > > getCDFs(unsigned 
     return result;
 }
 
-void stipple_with_random_sampling(unsigned char *image, int w, int h, const char* out_filename = "new_image.png") {
+void stipple_with_random_sampling(unsigned char *image, int w, int h, int q, const char* out_filename = "new_image.png") {
     unsigned char new_image[w*h];
     for (int i = 0; i < w*h; i++)
         new_image[i] = 255;
@@ -39,7 +39,7 @@ void stipple_with_random_sampling(unsigned char *image, int w, int h, const char
     rows = cdfs.first;
     collumns = cdfs.second;
     
-    int num_samples = w*h;
+    int num_samples = w*h/q;
     std::mt19937 rng(static_cast<unsigned>(std::time(0)));
     for (int i = 0; i < num_samples; i++) {
         std::uniform_real_distribution<> dist(0, 1);
@@ -57,7 +57,7 @@ void stipple_with_random_sampling(unsigned char *image, int w, int h, const char
     stbi_write_png(out_filename, w, h, 1, new_image, w);
 }
 
-void stipple_with_stratified_sampling(unsigned char *image, int w, int h, int n, const char* out_filename = "new_image.png") {
+void stipple_with_stratified_sampling(unsigned char *image, int w, int h, int q, const char* out_filename = "new_image.png") {
     unsigned char new_image[w*h];
     for (int i = 0; i < w*h; i++)
         new_image[i] = 255;
@@ -68,25 +68,23 @@ void stipple_with_stratified_sampling(unsigned char *image, int w, int h, int n,
     rows = cdfs.first;
     collumns = cdfs.second;
     
-    int num_samples = w*h;
+    int num_samples = w*h/q;
+    int n = (int) sqrt(num_samples);
     std::mt19937 rng(static_cast<unsigned>(std::time(0)));
-    for (int i = 0; i < num_samples/n; i++) {
-        for (int j = 0; j < sqrt(n); j++) {
-            for (int k = 0; k < sqrt(n); k++) {
-                std::uniform_real_distribution<> dist(j, j+1);
-                double sample_row = dist(rng)*(double) rows[h-1]/(double) sqrt(n);
-                std::vector<int>::iterator row_it = std::lower_bound(rows.begin(), rows.end(), sample_row);
-                int row_index = std::distance(rows.begin(), row_it);
+    for (int j = 0; j < n; j++) {
+        for (int k = 0; k < n; k++) {
+            std::uniform_real_distribution<> dist(j, j+1);
+            double sample_row = dist(rng)*(double) rows[h-1]/n;
+            std::vector<int>::iterator row_it = std::lower_bound(rows.begin(), rows.end(), sample_row);
+            int row_index = std::distance(rows.begin(), row_it);
 
-                std::uniform_real_distribution<> dist2(k, k+1);
-                double sample_collumn =dist2(rng)*(double) collumns[row_index][w-1]/(double) sqrt(n);
-                std::vector<int>::iterator collumn_it = std::lower_bound(collumns[row_index].begin(), collumns[row_index].end(), sample_collumn);
-                int collumn_index = std::distance(collumns[row_index].begin(), collumn_it);
-                new_image[row_index*w + collumn_index] = 0;  
-            }
-        }      
+            std::uniform_real_distribution<> dist2(k, k+1);
+            double sample_collumn =dist2(rng)*(double) collumns[row_index][w-1]/n;
+            std::vector<int>::iterator collumn_it = std::lower_bound(collumns[row_index].begin(), collumns[row_index].end(), sample_collumn);
+            int collumn_index = std::distance(collumns[row_index].begin(), collumn_it);
+            new_image[row_index*w + collumn_index] = 0;  
+        }
     }
-
     stbi_write_png(out_filename, w, h, 1, new_image, w);
 }
 
@@ -97,8 +95,8 @@ int main() {
         std::cout << "Invalid image!" << std::endl;
         return 0;
     } 
-    stipple_with_random_sampling(image_1, w_1, h_1, "image_1_random_stipple.png");
-    stipple_with_stratified_sampling(image_1, w_1, h_1, 100, "image_1_stratified_stipple.png");
+    stipple_with_random_sampling(image_1, w_1, h_1, 2, "image_1_random_stipple.png");
+    stipple_with_stratified_sampling(image_1, w_1, h_1, 2, "image_1_stratified_stipple.png");
     stbi_image_free(image_1);
     
     int w_2, h_2;
@@ -107,8 +105,8 @@ int main() {
         std::cout << "Invalid image!" << std::endl;
         return 0;
     } 
-    stipple_with_random_sampling(image_2, w_2, h_2, "image_2_random_stipple.png");
-    stipple_with_stratified_sampling(image_2, w_2, h_2, 256, "image_2_stratified_stipple.png");
+    stipple_with_random_sampling(image_2, w_2, h_2, 1, "image_2_random_stipple.png");
+    stipple_with_stratified_sampling(image_2, w_2, h_2, 1, "image_2_stratified_stipple.png");
     stbi_image_free(image_2);
 
     return 0;
