@@ -85,6 +85,28 @@ void stipple_with_stratified_sampling(unsigned char *image, int w, int h, int q,
             new_image[row_index*w + collumn_index] = 0;  
         }
     }
+
+    stbi_write_png(out_filename, w, h, 1, new_image, w);
+}
+
+void stipple_with_blue_noise(unsigned char *image, int w, int h, const char* out_filename = "new_image.png") {
+    int w_b, h_b;
+    unsigned char * blue_noise = stbi_load("LDR_LLL1_0.png", &w_b, &h_b, NULL, 1);
+    
+    unsigned char new_image[w*h];
+    for (int i = 0; i < w*h; i++)
+        new_image[i] = 255;
+
+    int i = 0;
+    for (int x = 0; x < w; x++) {
+        for (int y = 0; y < h; y++) {
+            if (image[y*w + x] < blue_noise[i % 262144]) {
+                new_image[y*w + x] = 0;
+            }
+            i++;
+        }
+    }
+
     stbi_write_png(out_filename, w, h, 1, new_image, w);
 }
 
@@ -97,6 +119,7 @@ int main() {
     } 
     stipple_with_random_sampling(image_1, w_1, h_1, 2, "image_1_random_stipple.png");
     stipple_with_stratified_sampling(image_1, w_1, h_1, 2, "image_1_stratified_stipple.png");
+    stipple_with_blue_noise(image_1, w_1, h_1,"image_1_blue_noise_stipple.png");
     stbi_image_free(image_1);
     
     int w_2, h_2;
@@ -107,6 +130,7 @@ int main() {
     } 
     stipple_with_random_sampling(image_2, w_2, h_2, 1, "image_2_random_stipple.png");
     stipple_with_stratified_sampling(image_2, w_2, h_2, 1, "image_2_stratified_stipple.png");
+    stipple_with_blue_noise(image_2, w_2, h_2, "image_2_blue_noise_stipple.png");
     stbi_image_free(image_2);
 
     return 0;
